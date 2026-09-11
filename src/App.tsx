@@ -1,4 +1,4 @@
-import { FormEvent, useMemo, useState } from 'react'
+import { FormEvent, KeyboardEvent as ReactKeyboardEvent, useEffect, useMemo, useRef, useState } from 'react'
 import {
   Activity,
   AlertTriangle,
@@ -55,6 +55,25 @@ import './styles.css'
 
 const priorityClass = (priority: string) => `pill priority-${priority.toLowerCase().replaceAll(' ', '-')}`
 const ownershipClass = (ownership: string) => `pill ownership-${ownership.toLowerCase().replaceAll(' ', '-')}`
+
+function handleTabKey(
+  event: ReactKeyboardEvent<HTMLButtonElement>,
+  index: number,
+  count: number,
+  select: (nextIndex: number) => void,
+) {
+  let nextIndex: number | undefined
+  if (event.key === 'ArrowRight' || event.key === 'ArrowDown') nextIndex = (index + 1) % count
+  if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') nextIndex = (index - 1 + count) % count
+  if (event.key === 'Home') nextIndex = 0
+  if (event.key === 'End') nextIndex = count - 1
+  if (nextIndex === undefined) return
+
+  event.preventDefault()
+  select(nextIndex)
+  const tabs = event.currentTarget.parentElement?.querySelectorAll<HTMLElement>('[role="tab"]')
+  tabs?.[nextIndex]?.focus()
+}
 
 function SectionHeading({
   eyebrow,
@@ -137,8 +156,18 @@ function HeroWorkspace() {
         <span>Updated by configured cadence</span>
       </div>
       <div className="segmented" role="tablist" aria-label="Interface view">
-        <button role="tab" aria-selected={view === 'surface'} onClick={() => setView('surface')}>Surface</button>
-        <button role="tab" aria-selected={view === 'exposure'} onClick={() => setView('exposure')}>Exposure</button>
+        {(['surface', 'exposure'] as const).map((value, index) => (
+          <button
+            key={value}
+            role="tab"
+            aria-selected={view === value}
+            tabIndex={view === value ? 0 : -1}
+            onClick={() => setView(value)}
+            onKeyDown={(event) => handleTabKey(event, index, 2, (next) => setView(next === 0 ? 'surface' : 'exposure'))}
+          >
+            {value === 'surface' ? 'Surface' : 'Exposure'}
+          </button>
+        ))}
       </div>
       <div className="metric-grid">
         {metrics.map(([label, value, note]) => (
@@ -239,7 +268,7 @@ function Challenges() {
       <div className="challenge-layout">
         <div className="challenge-list" role="tablist" aria-label="Attack-surface challenges">
           {challenges.map((challenge, index) => (
-            <button key={challenge.title} role="tab" aria-selected={active === index} onClick={() => setActive(index)}>
+            <button key={challenge.title} role="tab" aria-selected={active === index} tabIndex={active === index ? 0 : -1} onClick={() => setActive(index)} onKeyDown={(event) => handleTabKey(event, index, challenges.length, setActive)}>
               <span>{String(index + 1).padStart(2, '0')}</span>
               {challenge.title}
               <ChevronRight size={18} />
@@ -273,7 +302,7 @@ function Lifecycle() {
       />
       <div className="lifecycle-tabs" role="tablist" aria-label="Operating lifecycle">
         {lifecycle.map((stage, index) => (
-          <button key={stage.name} role="tab" aria-selected={active === index} onClick={() => setActive(index)}>
+          <button key={stage.name} role="tab" aria-selected={active === index} tabIndex={active === index ? 0 : -1} onClick={() => setActive(index)} onKeyDown={(event) => handleTabKey(event, index, lifecycle.length, setActive)}>
             <span>{index + 1}</span>{stage.name}
           </button>
         ))}
@@ -397,7 +426,7 @@ function AssetMap() {
           <p>{selected.type} · {selected.address}</p>
           <div className="inspector-tabs" role="tablist">
             {(['evidence', 'history', 'finding'] as const).map((value) => (
-              <button key={value} role="tab" aria-selected={panel === value} onClick={() => setPanel(value)}>{value}</button>
+            <button key={value} role="tab" aria-selected={panel === value} tabIndex={panel === value ? 0 : -1} onClick={() => setPanel(value)} onKeyDown={(event) => handleTabKey(event, ['evidence', 'history', 'finding'].indexOf(value), 3, (next) => setPanel((['evidence', 'history', 'finding'] as const)[next]))}>{value}</button>
             ))}
           </div>
           {panel === 'evidence' && <ul>{selected.evidence.map((item) => <li key={item}>{item}</li>)}</ul>}
@@ -437,7 +466,7 @@ function DiscoverySources() {
       <div className="source-explorer">
         <div role="tablist" className="source-tabs" aria-label="Discovery source categories">
           {discoverySources.map((item, index) => (
-            <button key={item[0]} role="tab" aria-selected={active === index} onClick={() => setActive(index)}>{item[0]}<ChevronRight size={17} /></button>
+            <button key={item[0]} role="tab" aria-selected={active === index} tabIndex={active === index ? 0 : -1} onClick={() => setActive(index)} onKeyDown={(event) => handleTabKey(event, index, discoverySources.length, setActive)}>{item[0]}<ChevronRight size={17} /></button>
           ))}
         </div>
         <article role="tabpanel" className="source-panel">
@@ -455,14 +484,55 @@ function DiscoverySources() {
 }
 
 function AssetDrawer({ asset, onClose }: { asset: Asset; onClose: () => void }) {
+  const drawerRef = useRef<HTMLElement>(null)
+  const closeRef = useRef<HTMLButtonElement>(null)
+  const previousFocus = useRef<HTMLElement | null>(null)
+
+  useEffect(() => {
+    previousFocus.current = document.activeElement as HTMLElement | null
+    const originalOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    closeRef.current?.focus()
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault()
+        onClose()
+        return
+      }
+      if (event.key !== 'Tab' || !drawerRef.current) return
+
+      const focusable = drawerRef.current.querySelectorAll<HTMLElement>(
+        'button:not([disabled]), a[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      )
+      if (focusable.length === 0) return
+      const first = focusable[0]
+      const last = focusable[focusable.length - 1]
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault()
+        last.focus()
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault()
+        first.focus()
+      }
+    }
+
+    document.addEventListener('keydown', handleKeyDown)
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown)
+      document.body.style.overflow = originalOverflow
+      previousFocus.current?.focus()
+    }
+  }, [onClose])
+
   return (
     <div className="drawer-backdrop" onMouseDown={(event) => { if (event.currentTarget === event.target) onClose() }}>
-      <aside className="drawer" role="dialog" aria-modal="true" aria-labelledby="asset-drawer-title">
-        <button className="icon-button drawer-close" onClick={onClose} aria-label="Close asset details"><X /></button>
+      <aside ref={drawerRef} className="drawer" role="dialog" aria-modal="true" aria-labelledby="asset-drawer-title" aria-describedby="asset-drawer-summary">
+        <button ref={closeRef} className="icon-button drawer-close" onClick={onClose} aria-label="Close asset details"><X /></button>
         <p className="eyebrow">Fictional asset record · {asset.id}</p>
         <h2 id="asset-drawer-title">{asset.name}</h2>
         <div className="drawer-pills"><span className={ownershipClass(asset.ownership)}>{asset.ownership}</span><span className={priorityClass(asset.priority)}>{asset.priority}</span></div>
-        <section><h3>Asset summary</h3><p>{asset.type} observed at {asset.address}. Purpose and sensitivity depend on validated internal context.</p></section>
+        <section><h3>Asset summary</h3><p id="asset-drawer-summary">{asset.type} observed at {asset.address}. Purpose and sensitivity depend on validated internal context.</p></section>
         <section><h3>Attribution evidence</h3><ul>{asset.evidence.map((item) => <li key={item}>{item}</li>)}</ul></section>
         <section><h3>Related assets</h3><p>northstar-services.example · {asset.address} · sample certificate relationship</p></section>
         <section><h3>Observed technologies</h3><div className="tag-row">{asset.technologies.map((item) => <span key={item}>{item}</span>)}</div></section>
@@ -505,7 +575,7 @@ function Inventory() {
       />
       <div className="inventory-shell">
         <div className="scroll-tabs" role="tablist" aria-label="Inventory views">
-          {tabs.map((value) => <button key={value} role="tab" aria-selected={tab === value} onClick={() => updateTab(value)}>{value}</button>)}
+          {tabs.map((value, index) => <button key={value} role="tab" aria-selected={tab === value} tabIndex={tab === value ? 0 : -1} onClick={() => updateTab(value)} onKeyDown={(event) => handleTabKey(event, index, tabs.length, (next) => updateTab(tabs[next]))}>{value}</button>)}
         </div>
         <div className="inventory-tools">
           <label className="search-field"><Search size={18} /><span className="sr-only">Search assets</span><input name="inventory-search" value={query} onChange={(event) => { setQuery(event.target.value); setPage(1) }} placeholder="Search fictional assets" /></label>
@@ -635,7 +705,7 @@ function FindingExplorer() {
       <SectionHeading eyebrow="Finding explorer" title="Review observations without overstating certainty" description="Sample findings distinguish what was observed from what remains unknown and what context is needed next." />
       <div className="finding-explorer">
         <div className="finding-list" role="tablist" aria-label="Finding categories">
-          {findings.map((item, index) => <button key={item.title} role="tab" aria-selected={active === index} onClick={() => setActive(index)}><AlertTriangle size={18} />{item.title}<span>{item.status}</span></button>)}
+          {findings.map((item, index) => <button key={item.title} role="tab" aria-selected={active === index} tabIndex={active === index ? 0 : -1} onClick={() => setActive(index)} onKeyDown={(event) => handleTabKey(event, index, findings.length, setActive)}><AlertTriangle size={18} />{item.title}<span>{item.status}</span></button>)}
         </div>
         <article className="finding-detail" role="tabpanel">
           <div className="panel-kicker"><FileCheck2 size={17} /> Observation requiring review</div>
@@ -762,7 +832,7 @@ function RoleSelector() {
     <section className="section light">
       <SectionHeading eyebrow="Role-based experiences" title="Put role-specific decisions in view" description="Select a role to preview the tasks and decisions presented in its illustrative workspace." />
       <div className="role-layout">
-        <div className="role-selector" role="tablist" aria-label="Security roles">{roleNames.map((name) => <button key={name} role="tab" aria-selected={role === name} onClick={() => setRole(name)}>{name}<ChevronRight /></button>)}</div>
+        <div className="role-selector" role="tablist" aria-label="Security roles">{roleNames.map((name, index) => <button key={name} role="tab" aria-selected={role === name} tabIndex={role === name ? 0 : -1} onClick={() => setRole(name)} onKeyDown={(event) => handleTabKey(event, index, roleNames.length, (next) => setRole(roleNames[next]))}>{name}<ChevronRight /></button>)}</div>
         <div className="role-dashboard" role="tabpanel">
           <div className="role-dashboard-head"><div><Label /><h3>{role} workspace</h3></div><span className="avatar"><Fingerprint /></span></div>
           <div className="role-cards">{roleViews[role].map((item, index) => <article key={item}><span>{index + 1}</span><Network size={20} /><strong>{item}</strong><small>{index % 2 ? 'Review current queue' : 'Open decision view'}</small></article>)}</div>
@@ -785,7 +855,7 @@ function Analytics() {
   return (
     <section className="section analytics-section">
       <SectionHeading eyebrow="Analytics and recommended measures" title="Measure the operating program, not marketing outcomes" description="Sample figures demonstrate product views and do not represent MTX or customer results." />
-      <div className="analytics-tabs" role="tablist">{Object.keys(summaries).map((value) => <button key={value} role="tab" aria-selected={metric === value} onClick={() => setMetric(value as typeof metric)}>{value}</button>)}</div>
+      <div className="analytics-tabs" role="tablist">{Object.keys(summaries).map((value, index, values) => <button key={value} role="tab" aria-selected={metric === value} tabIndex={metric === value ? 0 : -1} onClick={() => setMetric(value as typeof metric)} onKeyDown={(event) => handleTabKey(event, index, values.length, (next) => setMetric(values[next] as typeof metric))}>{value}</button>)}</div>
       <div className="analytics-grid">
         <div className="analytics-summary">{summaries[metric].map(([label, value]) => <article key={label}><Label /><span>{label}</span><strong>{value}</strong><small>Illustrative measure</small></article>)}</div>
         <article className="chart-card">
@@ -827,7 +897,7 @@ function Governance() {
     <section className="section light" id="governance">
       <SectionHeading eyebrow="Authorized scope and governance" title="Keep discovery and decisions within established rules" description="Discovery activities must follow written authorization, applicable law, provider policies, and established rules of engagement." />
       <div className="governance-layout">
-        <div className="governance-nav" role="tablist">{governance.map((item, index) => <button key={item[0] as string} role="tab" aria-selected={active === index} onClick={() => setActive(index)}>{item[0]}<ChevronRight /></button>)}</div>
+        <div className="governance-nav" role="tablist">{governance.map((item, index) => <button key={item[0] as string} role="tab" aria-selected={active === index} tabIndex={active === index ? 0 : -1} onClick={() => setActive(index)} onKeyDown={(event) => handleTabKey(event, index, governance.length, setActive)}>{item[0]}<ChevronRight /></button>)}</div>
         <div className="governance-panel" role="tabpanel">
           <div><p className="eyebrow">Control family</p><h3>{governance[active][0]}</h3><span className="pill ownership-confirmed">Configured per deployment</span></div>
           <div>{(governance[active][1] as string[]).map((item) => <label className="governance-control" key={item}><span><ShieldCheck />{item}</span><input name={`governance-${item.toLowerCase().replaceAll(' ', '-')}`} type="checkbox" checked={enabled[item] ?? (active !== 0 || item !== 'Approved subsidiaries')} onChange={(event) => setEnabled((current) => ({ ...current, [item]: event.target.checked }))} /></label>)}</div>
@@ -851,7 +921,7 @@ function Roadmap() {
     <section className="section slate">
       <SectionHeading eyebrow="Deployment and adoption roadmap" title="Adopt the operating model in controlled phases" description="The roadmap identifies decision points without prescribing a fixed implementation schedule." />
       <div className="roadmap">
-        <div className="roadmap-rail" role="tablist">{phases.map((phase, index) => <button key={phase[0] as string} role="tab" aria-selected={active === index} onClick={() => setActive(index)}><span>{index + 1}</span><b>Phase {index + 1}</b><small>{phase[0]}</small></button>)}</div>
+        <div className="roadmap-rail" role="tablist">{phases.map((phase, index) => <button key={phase[0] as string} role="tab" aria-selected={active === index} tabIndex={active === index ? 0 : -1} onClick={() => setActive(index)} onKeyDown={(event) => handleTabKey(event, index, phases.length, setActive)}><span>{index + 1}</span><b>Phase {index + 1}</b><small>{phase[0]}</small></button>)}</div>
         <article className="roadmap-detail" role="tabpanel"><div><p className="eyebrow">Phase {active + 1}</p><h3>{phases[active][0]}</h3></div><ul>{(phases[active][1] as string[]).map((item) => <li key={item}><CheckCircle2 />{item}</li>)}</ul></article>
       </div>
     </section>
@@ -958,7 +1028,7 @@ export default function App() {
       <a className="skip-link" href="#main">Skip to main content</a>
       <div id="top" />
       <Header />
-      <main id="main">
+      <main id="main" tabIndex={-1}>
         <Hero />
         <Scope />
         <Challenges />
