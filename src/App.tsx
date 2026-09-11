@@ -331,13 +331,13 @@ function AssetMap() {
         description="Filter a fictional relationship map, select an asset, inspect evidence, and record a local workflow decision."
       />
       <div className="map-toolbar" aria-label="Asset map filters">
-        <label>Asset type<select value={type} onChange={(event) => setType(event.target.value)}>
+        <label>Asset type<select name="map-asset-type" value={type} onChange={(event) => setType(event.target.value)}>
           <option>Any</option>{[...new Set(assets.map((item) => item.type))].map((value) => <option key={value}>{value}</option>)}
         </select></label>
-        <label>Ownership<select value={ownership} onChange={(event) => setOwnership(event.target.value)}>
+        <label>Ownership<select name="map-ownership" value={ownership} onChange={(event) => setOwnership(event.target.value)}>
           <option>Any</option><option>Confirmed</option><option>Under review</option><option>Unassociated</option><option>Third-party</option>
         </select></label>
-        <label>Priority<select value={priority} onChange={(event) => setPriority(event.target.value)}>
+        <label>Priority<select name="map-priority" value={priority} onChange={(event) => setPriority(event.target.value)}>
           <option>Any</option><option>Critical review</option><option>High priority</option><option>Elevated</option><option>Standard review</option><option>Informational</option>
         </select></label>
         <button className="button button-secondary button-small" onClick={() => { setType('Any'); setOwnership('Any'); setPriority('Any') }}>Reset filters</button>
@@ -403,7 +403,7 @@ function AssetMap() {
           {panel === 'evidence' && <ul>{selected.evidence.map((item) => <li key={item}>{item}</li>)}</ul>}
           {panel === 'history' && <ul><li>First observed {selected.firstObserved}</li><li>{selected.change}</li><li>Last observed {selected.lastObserved}</li></ul>}
           {panel === 'finding' && <div><strong>{selected.findings} open finding{selected.findings === 1 ? '' : 's'}</strong><p>Observations require review with asset context before a response is selected.</p></div>}
-          <label>Fictional owner<select value={owner} onChange={(event) => setOwner(event.target.value)}>
+          <label>Fictional owner<select name="map-owner" value={owner} onChange={(event) => setOwner(event.target.value)}>
             <option>Unassigned</option><option>Attribution queue</option><option>Maya Chen</option><option>Avery Singh</option><option>Cloud Security</option>
           </select></label>
           <button className="button button-small" onClick={() => setPanel('finding')}>Open related finding</button>
@@ -508,9 +508,9 @@ function Inventory() {
           {tabs.map((value) => <button key={value} role="tab" aria-selected={tab === value} onClick={() => updateTab(value)}>{value}</button>)}
         </div>
         <div className="inventory-tools">
-          <label className="search-field"><Search size={18} /><span className="sr-only">Search assets</span><input value={query} onChange={(event) => { setQuery(event.target.value); setPage(1) }} placeholder="Search fictional assets" /></label>
-          <label><span className="sr-only">Filter by priority</span><select value={priority} onChange={(event) => { setPriority(event.target.value); setPage(1) }}><option>Any</option><option>Critical review</option><option>High priority</option><option>Elevated</option><option>Standard review</option><option>Informational</option></select></label>
-          <label><span className="sr-only">Sort assets</span><select value={sort} onChange={(event) => setSort(event.target.value as 'name' | 'lastObserved')}><option value="lastObserved">Last observed</option><option value="name">Asset name</option></select></label>
+          <label className="search-field"><Search size={18} /><span className="sr-only">Search assets</span><input name="inventory-search" value={query} onChange={(event) => { setQuery(event.target.value); setPage(1) }} placeholder="Search fictional assets" /></label>
+          <label><span className="sr-only">Filter by priority</span><select name="inventory-priority" value={priority} onChange={(event) => { setPriority(event.target.value); setPage(1) }}><option>Any</option><option>Critical review</option><option>High priority</option><option>Elevated</option><option>Standard review</option><option>Informational</option></select></label>
+          <label><span className="sr-only">Sort assets</span><select name="inventory-sort" value={sort} onChange={(event) => setSort(event.target.value as 'name' | 'lastObserved')}><option value="lastObserved">Last observed</option><option value="name">Asset name</option></select></label>
         </div>
         <div className="table-scroll inventory-table">
           <table>
@@ -565,7 +565,7 @@ function OwnershipWorkflow() {
           <div className="confidence"><span>Association confidence</span><strong>72% · Moderate</strong><div><i style={{ width: '72%' }} /></div><small>Indicator, not a definitive ownership decision</small></div>
           <h3>api.northstar-services.example</h3>
           <ul className="evidence-list"><li><CheckCircle2 /> DNS relationship to approved root</li><li><CheckCircle2 /> Certificate includes related hostname</li><li><CircleDot /> No confirmed inventory match</li></ul>
-          <label>Potential business owner<select value={owner} onChange={(event) => setOwner(event.target.value)}><option>Unassigned</option><option>Digital Platform</option><option>Citizen Services</option><option>Integration Services</option></select></label>
+          <label>Potential business owner<select name="validation-owner" value={owner} onChange={(event) => setOwner(event.target.value)}><option>Unassigned</option><option>Digital Platform</option><option>Citizen Services</option><option>Integration Services</option></select></label>
           <div className="decision-status" aria-live="polite"><span>Local decision</span><strong>{decision}</strong>{owner !== 'Unassigned' && <small>Assigned to {owner}</small>}</div>
           <div className="action-grid">
             <button onClick={() => decide('Ownership confirmed', 5)}>Confirm ownership</button>
@@ -613,8 +613,8 @@ function Prioritization() {
             <strong>Why this priority</strong>
             <p>External reachability, high asset criticality, and a possible trust relationship raise attention. Recorded controls reduce urgency, while moderate ownership confidence and absent exploitability evidence preserve analyst review.</p>
           </div>
-          <label>Data sensitivity<select value={sensitivity} onChange={(event) => setSensitivity(event.target.value)}><option>Unknown</option><option>Internal</option><option>Restricted</option><option>Public</option></select></label>
-          <label className="switch-row"><input type="checkbox" checked={controls} onChange={(event) => setControls(event.target.checked)} /><span>Compensating control evidence linked</span></label>
+          <label>Data sensitivity<select name="priority-sensitivity" value={sensitivity} onChange={(event) => setSensitivity(event.target.value)}><option>Unknown</option><option>Internal</option><option>Restricted</option><option>Public</option></select></label>
+          <label className="switch-row"><input name="priority-control-evidence" type="checkbox" checked={controls} onChange={(event) => setControls(event.target.checked)} /><span>Compensating control evidence linked</span></label>
           <div className="priority-bands" aria-label="Priority band scale">
             {['Critical review', 'High priority', 'Elevated', 'Standard review', 'Informational'].map((value) => <span key={value} className={value === 'High priority' ? 'active' : ''}>{value}</span>)}
           </div>
@@ -664,11 +664,11 @@ function ChangeTimeline() {
     <section className="section slate">
       <SectionHeading eyebrow="Illustrative change timeline" title="See how the external footprint changes" description="Compare scheduled observations and workflow events to understand what appeared, changed, or was no longer visible." />
       <div className="timeline-tools">
-        <label>Asset<select><option>Any fictional asset</option>{assets.slice(0, 5).map((asset) => <option key={asset.id}>{asset.name}</option>)}</select></label>
-        <label>Business unit<select><option>Any business unit</option><option>Citizen Services</option><option>Digital Platform</option><option>Shared Services</option></select></label>
-        <label>Change type<select value={changeType} onChange={(event) => setChangeType(event.target.value)}><option>Any</option><option>Discovery</option><option>Certificate</option><option>Exposure</option><option>Ownership</option><option>Finding</option><option>Remediation</option></select></label>
-        <label>Priority<select value={priority} onChange={(event) => setPriority(event.target.value)}><option>Any</option><option>Critical review</option><option>High priority</option><option>Elevated</option><option>Standard review</option></select></label>
-        <label>Time period<select value={period} onChange={(event) => setPeriod(event.target.value)}><option>7 days</option><option>30 days</option><option>90 days</option></select></label>
+        <label>Asset<select name="timeline-asset"><option>Any fictional asset</option>{assets.slice(0, 5).map((asset) => <option key={asset.id}>{asset.name}</option>)}</select></label>
+        <label>Business unit<select name="timeline-business-unit"><option>Any business unit</option><option>Citizen Services</option><option>Digital Platform</option><option>Shared Services</option></select></label>
+        <label>Change type<select name="timeline-change-type" value={changeType} onChange={(event) => setChangeType(event.target.value)}><option>Any</option><option>Discovery</option><option>Certificate</option><option>Exposure</option><option>Ownership</option><option>Finding</option><option>Remediation</option></select></label>
+        <label>Priority<select name="timeline-priority" value={priority} onChange={(event) => setPriority(event.target.value)}><option>Any</option><option>Critical review</option><option>High priority</option><option>Elevated</option><option>Standard review</option></select></label>
+        <label>Time period<select name="timeline-period" value={period} onChange={(event) => setPeriod(event.target.value)}><option>7 days</option><option>30 days</option><option>90 days</option></select></label>
       </div>
       <div className="timeline">
         {filtered.map((item) => <article key={`${item[0]}${item[1]}`}><time>{item[0]}</time><span className="timeline-dot" /><div><div><span className={priorityClass(item[3])}>{item[3]}</span><small>{item[4]}</small></div><h3>{item[1]}</h3><p>{item[2]}</p></div></article>)}
@@ -708,8 +708,8 @@ function Remediation() {
         </div>
         <aside className="command-panel">
           <p className="eyebrow">Local workflow actions</p><h3>{items[selected].finding}</h3>
-          <label>Assign owner<select value={items[selected].owner} onChange={(event) => update({ owner: event.target.value, status: 'Assigned' }, `Assigned to ${event.target.value}.`)}><option>Attribution queue</option><option>App Security</option><option>Cloud Security</option><option>Vendor Management</option></select></label>
-          <label>Add note<textarea value={note} onChange={(event) => setNote(event.target.value)} placeholder="Enter a fictional workflow note" /></label>
+          <label>Assign owner<select name="remediation-owner" value={items[selected].owner} onChange={(event) => update({ owner: event.target.value, status: 'Assigned' }, `Assigned to ${event.target.value}.`)}><option>Attribution queue</option><option>App Security</option><option>Cloud Security</option><option>Vendor Management</option></select></label>
+          <label>Add note<textarea name="remediation-note" value={note} onChange={(event) => setNote(event.target.value)} placeholder="Enter a fictional workflow note" /></label>
           <div className="action-grid">
             <button onClick={() => update({ ticket: `Local-${Math.floor(120 + selected)}` }, 'Local ticket created.')}>Create local ticket</button>
             <button onClick={() => { setNote(''); setMessage(note ? 'Note added in browser memory.' : 'Enter a note first.') }}>Add note</button>
@@ -830,7 +830,7 @@ function Governance() {
         <div className="governance-nav" role="tablist">{governance.map((item, index) => <button key={item[0] as string} role="tab" aria-selected={active === index} onClick={() => setActive(index)}>{item[0]}<ChevronRight /></button>)}</div>
         <div className="governance-panel" role="tabpanel">
           <div><p className="eyebrow">Control family</p><h3>{governance[active][0]}</h3><span className="pill ownership-confirmed">Configured per deployment</span></div>
-          <div>{(governance[active][1] as string[]).map((item) => <label className="governance-control" key={item}><span><ShieldCheck />{item}</span><input type="checkbox" checked={enabled[item] ?? (active !== 0 || item !== 'Approved subsidiaries')} onChange={(event) => setEnabled((current) => ({ ...current, [item]: event.target.checked }))} /></label>)}</div>
+          <div>{(governance[active][1] as string[]).map((item) => <label className="governance-control" key={item}><span><ShieldCheck />{item}</span><input name={`governance-${item.toLowerCase().replaceAll(' ', '-')}`} type="checkbox" checked={enabled[item] ?? (active !== 0 || item !== 'Approved subsidiaries')} onChange={(event) => setEnabled((current) => ({ ...current, [item]: event.target.checked }))} /></label>)}</div>
         </div>
       </div>
     </section>
@@ -887,7 +887,7 @@ function Maturity() {
   return (
     <section className="section maturity-section">
       <SectionHeading eyebrow="Capability evidence" title="Product maturity and operating evidence" description="Status labels distinguish prototype capability, deployment configuration, roadmap intent, and items requiring MTX validation." />
-      <div className="maturity-filter"><label>Status<select value={filter} onChange={(event) => setFilter(event.target.value)}><option>Any</option><option>Available</option><option>Configured per deployment</option><option>Planned</option><option>Requires validation</option></select></label></div>
+      <div className="maturity-filter"><label>Status<select name="maturity-status" value={filter} onChange={(event) => setFilter(event.target.value)}><option>Any</option><option>Available</option><option>Configured per deployment</option><option>Planned</option><option>Requires validation</option></select></label></div>
       <div className="maturity-grid">{items.filter((item) => filter === 'Any' || item[1] === filter).map(([name, status]) => <article key={name}><span className={`maturity-dot ${status.toLowerCase().replaceAll(' ', '-')}`} /><strong>{name}</strong><span className="pill">{status}</span></article>)}</div>
     </section>
   )
