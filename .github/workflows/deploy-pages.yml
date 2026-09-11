@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - cursor/build-asm-prototype-2b7c
   workflow_dispatch:
 
 permissions:
