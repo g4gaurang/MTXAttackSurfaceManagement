@@ -27,4 +27,6 @@
 
 ## Review
 
-The production build and ESLint pass. Manual browser testing covered the required interactions at desktop and mobile widths, plus focused checks at 1024 and 768 pixels. The browser console contains no application errors or warnings. Generated production assets use `./` paths. Content scans found no prohibited claims, public domains, public addresses, network request code, customer references, or unsupported certifications. Sample addresses are limited to RFC documentation ranges.
+The production build and ESLint pass. Manual browser testing covered the required interactions at desktop and mobile widths, plus focused checks at 1024, 768, 390, and 320 pixels. The browser console contains no application errors or warnings. Generated production assets use `./` paths. Content scans found no prohibited claims, public domains, public addresses, network request code, customer references, or unsupported certifications. Sample addresses are limited to RFC documentation ranges.
+
+The accessibility follow-up verified arrow-key, Home, and End behavior across tab sets. The asset drawer now moves focus to its close control, keeps keyboard focus within the dialog, closes with Escape, restores focus to its trigger, and prevents background scrolling while open.
